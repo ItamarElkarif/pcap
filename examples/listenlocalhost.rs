@@ -11,8 +11,8 @@ fn main() {
     let mut filter = cap.compile_filter("host 127.0.0.1", true).unwrap();
     cap.filter(&mut filter).unwrap();
 
-    while let Ok(packet) = cap.next() {
-        println!("got packet! {:?}", packet);
+    for packet in cap.incoming().take(8) {
+        println!("got packet! {:?}", packet.unwrap());
     }
     pcap::pcap_loop(cap, Some(8), handler).unwrap();
 }

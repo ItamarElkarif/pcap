@@ -1,3 +1,4 @@
+use crate::Activated;
 use crate::Error;
 use crate::Packet;
 use crate::State;
@@ -47,5 +48,28 @@ pub fn pcap_loop<T: State>(
         0 => Ok(()),
         -2 => Err(Error::NoMorePackets),
         _ => capture.check_err(false),
+    }
+}
+
+pub struct Incoming<'a, T: Activated> {
+    capture: &'a mut Capture<T>,
+}
+
+impl<'a, T: Activated> Iterator for Incoming<'a, T> {
+    type Item = Result<Packet<'a>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let packet = self.capture.next();
+        match packet {
+            Err(Error::TimeoutExpired) => None,
+            Ok(packet) => Some(Ok(packet)),
+            Err(e) => Some(Err(e)),
+        }
+    }
+}
+
+impl<T: Activated> Capture<T> {
+    pub fn incoming(&mut self) -> Incoming<T> {
+        Incoming { capture: self }
     }
 }
