@@ -7,8 +7,8 @@ edition = "2018"
 description = "A packet capture API around pcap/wpcap"
 keywords = ["pcap", "packet", "sniffing"]
 readme = "README.md"
-homepage = "https://github.com/ebfull/pcap"
-repository = "https://github.com/ebfull/pcap"
+homepage = "https://github.com/ItamarElkarif/pcap"
+repository = "https://github.com/ItamarElkarif/pcap"
 documentation = "https://docs.rs/pcap"
 license = "MIT OR Apache-2.0"
 build = "build.rs"
@@ -19,6 +19,7 @@ clippy = { version = "0.0.*", optional = true }
 mio = { version = "0.6", optional = true }
 tokio = { version = "1.0", features = ["net", "rt", "macros", "rt-multi-thread"], optional = true }
 futures = { version = "0.3", optional = true }
+etherparse = "0.10.1"
 errno = "0.2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
@@ -79,6 +80,10 @@ required-features = ["capture-stream"]
 [[example]]
 name = "nfbpfcompile"
 path = "examples/nfbpfcompile.rs"
+
+[[example]]
+name = "with_ether"
+path = "examples/with_ether.rs"
 
 [package.metadata.docs.rs]
 features = ["docs-rs"]

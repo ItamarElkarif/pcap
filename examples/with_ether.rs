@@ -7,11 +7,10 @@ fn main() {
         .open()
         .unwrap();
 
-    // filter out all packets that don't have 127.0.0.1 as a source or destination.
-    let filter = cap.compile_filter("host 127.0.0.1", true).unwrap();
-    cap.filter(&filter).unwrap();
+    let mut filter = cap.compile_filter("ip", true).unwrap();
+    cap.filter(&mut filter).unwrap();
 
-    for packet in cap.iter().take(8) {
+    for packet in cap.iter().parse_ethernet().take(8) {
         println!("got packet! {:?}", packet);
     }
     pcap::pcap_loop(cap, Some(8), handler).unwrap();

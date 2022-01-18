@@ -1,10 +1,7 @@
-use crate::Activated;
-use crate::Error;
-use crate::Packet;
-use crate::State;
 use crate::{raw, Capture, PacketHeader};
-use libc::c_int;
-use libc::c_uchar;
+use crate::{Activated, Error, Packet, State};
+use etherparse::{Ipv4HeaderSlice, SlicedPacket};
+use libc::{c_int, c_uchar};
 
 /// The type for the function to pass into pcap_loop
 pub type HandlerFunc = fn(Packet) -> ();
@@ -51,25 +48,82 @@ pub fn pcap_loop<T: State>(
     }
 }
 
-pub struct Incoming<'a, T: Activated> {
+impl<T: Activated> Capture<T> {
+    pub fn iter(&mut self) -> PacketsIter<T> {
+        PacketsIter { capture: self }
+    }
+}
+
+/// An iterator for the captures packets
+/// returns None on timeout or no more packets from pcap file
+pub struct PacketsIter<'a, T: Activated> {
     capture: &'a mut Capture<T>,
 }
 
-impl<'a, T: Activated> Iterator for Incoming<'a, T> {
-    type Item = Result<Packet<'a>, Error>;
+impl<'a, T: Activated> Iterator for PacketsIter<'a, T> {
+    type Item = Packet<'a>;
 
+    /// Since the only errors are where there are no more packets (from the file or got
+    /// timeout) we can ignore the error
     fn next(&mut self) -> Option<Self::Item> {
         let packet = self.capture.next();
         match packet {
-            Err(Error::TimeoutExpired) => None,
-            Ok(packet) => Some(Ok(packet)),
-            Err(e) => Some(Err(e)),
+            Ok(packet) => Some(packet),
+            Err(_) => None,
         }
     }
 }
 
-impl<T: Activated> Capture<T> {
-    pub fn incoming(&mut self) -> Incoming<T> {
-        Incoming { capture: self }
+impl<'a, T: Activated> PacketsIter<'a, T> {
+    pub fn parse_ethernet(&'a mut self) -> EtherIter<'a, T> {
+        EtherIter { iter: self }
+    }
+
+    pub fn parse_ip(&'a mut self) -> IpIter<'a, T> {
+        IpIter { iter: self }
+    }
+}
+
+/// A wrapper for the packets using
+/// (etherparse)[https://docs.rs/etherparse/latest/etherparse/struct.SlicedPacket.html#method.from_ethernet] parsing capabilities.
+/// This function assumes the given data starts with an ethernet II header 14 byte length.
+/// ### Important 
+/// On windows localhost the ether header is only the type and will **not** work with etherparse,
+/// try to parse it yourself instead or use `Ipv4HeaderSlice::from_slice(&packet.data[4..])` for IP
+/// parsing
+pub struct EtherIter<'a, T: Activated> {
+    iter: &'a mut PacketsIter<'a, T>,
+}
+
+impl<'a, T: Activated> Iterator for EtherIter<'a, T> {
+    type Item = Result<SlicedPacket<'a>, etherparse::ReadError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let packet = self.iter.next()?;
+        Some(SlicedPacket::from_ethernet(packet.data))
+    }
+}
+
+/// A wrapper for the packets using
+/// (etherparse IPv4)[https://docs.rs/etherparse/latest/etherparse/struct.Ipv4HeaderSlice.html#method.from_slice] parsing capabilities.
+/// This function assumes the Ip Header starts at index 14 (like a normal packet).
+/// ### Important 
+/// On windows localhost the ether header is only the type and will **not** work with etherparse,
+/// try to parse it yourself instead or use `Ipv4HeaderSlice::from_slice(&packet.data[4..])` for IP
+/// parsing
+pub struct IpIter<'a, T: Activated> {
+    iter: &'a mut PacketsIter<'a, T>,
+}
+
+impl<'a, T: Activated> Iterator for IpIter<'a, T> {
+    type Item = Result<Ipv4HeaderSlice<'a>, etherparse::ReadError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let packet = self.iter.next()?;
+        if packet.data.len() < 14 {
+            return Some(Err(etherparse::ReadError::UnexpectedEndOfSlice(14)));
+        }
+
+        Some(Ipv4HeaderSlice::from_slice(&packet.data[14..]))
     }
 }
