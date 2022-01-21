@@ -114,7 +114,7 @@ extern "C" {
     ) -> c_int;
     // pub fn pcap_breakloop(arg1: *mut pcap_t);
     pub fn pcap_stats(arg1: *mut pcap_t, arg2: *mut pcap_stat) -> c_int;
-    pub fn pcap_setfilter(arg1: *mut pcap_t, arg2: *mut bpf_program) -> c_int;
+    pub fn pcap_setfilter(arg1: *mut pcap_t, arg2: *const bpf_program) -> c_int;
     pub fn pcap_setdirection(arg1: *mut pcap_t, arg2: pcap_direction_t) -> c_int;
     // pub fn pcap_getnonblock(arg1: *mut pcap_t, arg2: *mut c_char) -> c_int;
     pub fn pcap_setnonblock(arg1: *mut pcap_t, arg2: c_int, arg3: *mut c_char) -> c_int;

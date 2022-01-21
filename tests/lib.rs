@@ -59,10 +59,10 @@ fn unify_activated() {
     }
 
     fn also_maybe(a: &mut Capture<dyn Activated>) {
-        let mut filter = a
+        let filter = a
             .compile_filter("whatever filter string, this won't be run anyway", false)
             .unwrap();
-        a.filter(&mut filter).unwrap();
+        a.filter(&filter).unwrap();
     }
 }
 

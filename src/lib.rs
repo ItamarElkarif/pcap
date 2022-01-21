@@ -1142,18 +1142,17 @@ impl<T: Activated + ?Sized> Capture<T> {
         }
     }
 
-    /// Adds a filter to the capture using the given BPF program string. Internally
-    /// this is compiled using `pcap_compile()`.
-    ///
-    /// See http://biot.com/capstats/bpf.html for more information about this syntax.
-    pub fn filter(&mut self, filter: &mut BpfProgram) -> Result<(), Error> {
+    /// Uses a Precomipled filter with `self.compile_filter` to add a filter for the capture.
+    pub fn filter(&mut self, filter: &BpfProgram) -> Result<(), Error> {
         unsafe {
-            let ret = raw::pcap_setfilter(*self.handle, &mut filter.0);
-            raw::pcap_freecode(&mut filter.0);
+            let ret = raw::pcap_setfilter(*self.handle, &filter.0);
             self.check_err(ret != -1)
         }
     }
 
+    /// Compiles a filter using a bpf string.
+    ///
+    /// See http://biot.com/capstats/bpf.html for more information about this syntax.
     pub fn compile_filter(&mut self, program: &str, optimize: bool) -> Result<BpfProgram, Error> {
         let program = CString::new(program)?;
         unsafe {
