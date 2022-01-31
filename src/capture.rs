@@ -51,25 +51,25 @@ pub fn pcap_loop<T: State>(
     }
 }
 
-pub struct Incoming<'a, T: Activated> {
+pub struct Packets<'a, T: Activated> {
     capture: &'a mut Capture<T>,
 }
 
-impl<'a, T: Activated> Iterator for Incoming<'a, T> {
+impl<'a, T: Activated> Iterator for Packets<'a, T> {
     type Item = Result<Packet<'a>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let packet = self.capture.next();
         match packet {
-            Err(Error::TimeoutExpired) => None,
             Ok(packet) => Some(Ok(packet)),
+            Err(Error::NoMorePackets | Error::TimeoutExpired) => None,
             Err(e) => Some(Err(e)),
         }
     }
 }
 
 impl<T: Activated> Capture<T> {
-    pub fn incoming(&mut self) -> Incoming<T> {
-        Incoming { capture: self }
+    pub fn iter(&mut self) -> Packets<T> {
+        Packets { capture: self }
     }
 }
