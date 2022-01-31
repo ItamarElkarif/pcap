@@ -975,8 +975,8 @@ impl Capture<Inactive> {
     /// Useful if you only want certain headers, but not the entire packet.
     ///
     /// The default is 65535.
-    pub fn snaplen(self, to: i32) -> Capture<Inactive> {
-        unsafe { raw::pcap_set_snaplen(*self.handle, to) };
+    pub fn snaplen(self, to: Snapshot) -> Capture<Inactive> {
+        unsafe { raw::pcap_set_snaplen(*self.handle, to.into()) };
         self
     }
 }

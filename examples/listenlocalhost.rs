@@ -4,6 +4,7 @@ fn main() {
     let mut cap = pcap::Capture::from_device("any")
         .unwrap()
         .immediate_mode(true)
+        .snaplen(pcap::Snapshot::LocalIPv4)
         .open()
         .unwrap();
 
@@ -12,11 +13,12 @@ fn main() {
     cap.filter(&filter).unwrap();
 
     for packet in cap.iter().take(8) {
-        println!("got packet! {:?}", packet.unwrap());
+        let packet = packet.unwrap();
+        println!( "got packet! {:?}: {:X?}", packet.header, packet.data);
     }
     pcap::pcap_loop(cap, Some(8), handler).unwrap();
 }
 
 fn handler(packet: pcap::Packet) {
-    println!("Loop Got {:?}", packet)
+    println!("Loop Got {:?}", &*packet)
 }

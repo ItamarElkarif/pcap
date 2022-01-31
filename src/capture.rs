@@ -73,3 +73,44 @@ impl<T: Activated> Capture<T> {
         Packets { capture: self }
     }
 }
+
+/// NOTE: Localhost on windows takes only 4 bytes and not 10
+#[derive(Debug, Clone, Copy)]
+pub enum Snapshot {
+    Custom(i32),
+    EthernetII,
+    IPv4,
+    TCP,
+    UDP,
+    LocalIPv4,
+    LocalTCP,
+    LocalUDP,
+    FullPacket,
+}
+
+#[cfg(target_os="linux")]
+const LOCAL_ETHER_HEADER_SIZE: i32 = 16;
+
+#[cfg(windows)]
+const LOCAL_ETHER_HEADER_SIZE: i32 = 4;
+
+// Check if this remove the calls in compile time, I think It can!
+impl From<Snapshot> for i32 {
+    fn from(s: Snapshot) -> Self {
+        match s {
+            #[cfg(target_os="linux")]
+            Snapshot::EthernetII => 16,
+            #[cfg(windows)]
+            Snapshot::EthernetII => 14,
+
+            Snapshot::Custom(len) => len,
+            Snapshot::IPv4 => i32::from(Snapshot::EthernetII) + 20,
+            Snapshot::TCP => i32::from(Snapshot::IPv4) + 20,
+            Snapshot::UDP => i32::from(Snapshot::IPv4) + 8,
+            Snapshot::LocalIPv4 => LOCAL_ETHER_HEADER_SIZE + 20,
+            Snapshot::LocalTCP => i32::from(Snapshot::LocalIPv4) + 20,
+            Snapshot::LocalUDP => i32::from(Snapshot::LocalIPv4) + 8,
+            Snapshot::FullPacket => 65535,
+        }
+    }
+}
