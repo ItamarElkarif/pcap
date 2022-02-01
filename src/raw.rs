@@ -234,6 +234,7 @@ pub const WINPCAP_MINTOCOPY_DEFAULT: c_int = 16000;
 #[link(name = "wpcap")]
 extern "C" {
     pub fn pcap_setmintocopy(arg1: *mut pcap_t, arg2: c_int) -> c_int;
+    pub fn pcap_setmode(capture: *mut pcap_t, mode: c_int) -> c_int;
 }
 
 #[cfg(not(windows))]

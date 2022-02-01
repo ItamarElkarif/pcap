@@ -639,6 +639,11 @@ pub enum Offline {}
 /// Implements `Activated` because it behaves nearly the same as a live handle.
 pub enum Dead {}
 
+/// Phantom type representing an active capture handle which has been set to statistics mode (via
+/// pcap_setmode).
+#[cfg(windows)]
+pub enum Statistics {}
+
 /// `Capture`s can be in different states at different times, and in these states they
 /// may or may not have particular capabilities. This trait is implemented by phantom
 /// types which allows us to punt these invariants to the type system to avoid runtime
@@ -650,6 +655,9 @@ impl Activated for Active {}
 impl Activated for Offline {}
 
 impl Activated for Dead {}
+
+#[cfg(windows)]
+impl Activated for Statistics {}
 
 /// `Capture`s can be in different states at different times, and in these states they
 /// may or may not have particular capabilities. This trait is implemented by phantom
@@ -664,6 +672,10 @@ impl State for Active {}
 impl State for Offline {}
 
 impl State for Dead {}
+
+#[cfg(windows)]
+impl State for Statistics {}
+
 
 /// This is a pcap capture handle which is an abstraction over the `pcap_t` provided by pcap.
 /// There are many ways to instantiate and interact with a pcap handle, so phantom types are

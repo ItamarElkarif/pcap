@@ -1,7 +1,10 @@
+use std::mem;
+
 use crate::Activated;
 use crate::Error;
 use crate::Packet;
-use crate::State;
+#[cfg(windows)]
+use crate::Statistics;
 use crate::{raw, Capture, PacketHeader};
 use libc::c_int;
 use libc::c_uchar;
@@ -30,7 +33,7 @@ unsafe extern "C" fn capturer(
 ///Processes packets from a live capture or ``savefile`` until max packets are processed,
 ///or the end of the ``savefile`` is reached when reading from a ``savefile``
 /// **Note:** pcap_loop is blocking so `setnonblock` will have no effect
-pub fn pcap_loop<T: State>(
+pub fn pcap_loop<T: Activated>(
     capture: Capture<T>,
     max: Option<usize>,
     handler: HandlerFunc,
@@ -71,5 +74,18 @@ impl<'a, T: Activated> Iterator for Packets<'a, T> {
 impl<T: Activated> Capture<T> {
     pub fn iter(&mut self) -> Packets<T> {
         Packets { capture: self }
+    }
+}
+
+#[cfg(windows)]
+impl<T: Activated> Capture<T> {
+    pub fn stats_mode(self) -> Result<Capture<Statistics>, Error> {
+        unsafe {
+            self.check_err(raw::pcap_setmode(*self.handle, 1) == 0)?;
+
+            // Since we changing only the phantomType which doesn't have any size it's fine
+            // (probably, it is also done in capture<Inactive>.open with success).
+            Ok(mem::transmute(self))
+        }
     }
 }
