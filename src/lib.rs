@@ -91,10 +91,12 @@ use winapi::shared::{
     ws2ipdef::SOCKADDR_IN6,
 };
 
+mod capture;
 mod raw;
 #[cfg(feature = "capture-stream")]
 pub mod stream;
 mod unique;
+pub use capture::*;
 
 /// An error received from pcap
 #[derive(Debug, PartialEq)]
@@ -1061,7 +1063,7 @@ impl<T: Activated + ?Sized> Capture<T> {
     /// packets will be discarded temporarily. This means that in realtime situations,
     /// you probably want to minimize the time between calls of this next() method.
     #[allow(clippy::should_implement_trait)]
-    pub fn next(&mut self) -> Result<Packet, Error> {
+    pub fn next<'a>(&mut self) -> Result<Packet<'a>, Error> {
         unsafe {
             let mut header: *mut raw::pcap_pkthdr = ptr::null_mut();
             let mut packet: *const libc::c_uchar = ptr::null();
@@ -1140,11 +1142,18 @@ impl<T: Activated + ?Sized> Capture<T> {
         }
     }
 
-    /// Adds a filter to the capture using the given BPF program string. Internally
-    /// this is compiled using `pcap_compile()`.
+    /// Uses a Precomipled filter with `self.compile_filter` to add a filter for the capture.
+    pub fn filter(&mut self, filter: &BpfProgram) -> Result<(), Error> {
+        unsafe {
+            let ret = raw::pcap_setfilter(*self.handle, &filter.0);
+            self.check_err(ret != -1)
+        }
+    }
+
+    /// Compiles a filter using a bpf string.
     ///
     /// See http://biot.com/capstats/bpf.html for more information about this syntax.
-    pub fn filter(&mut self, program: &str, optimize: bool) -> Result<(), Error> {
+    pub fn compile_filter(&mut self, program: &str, optimize: bool) -> Result<BpfProgram, Error> {
         let program = CString::new(program)?;
         unsafe {
             let mut bpf_program: raw::bpf_program = mem::zeroed();
@@ -1155,10 +1164,9 @@ impl<T: Activated + ?Sized> Capture<T> {
                 optimize as libc::c_int,
                 0,
             );
+
             self.check_err(ret != -1)?;
-            let ret = raw::pcap_setfilter(*self.handle, &mut bpf_program);
-            raw::pcap_freecode(&mut bpf_program);
-            self.check_err(ret != -1)
+            Ok(BpfProgram(bpf_program))
         }
     }
 

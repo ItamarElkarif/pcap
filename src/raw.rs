@@ -77,8 +77,9 @@ pub struct pcap_addr_t {
     pub dstaddr: *mut sockaddr,
 }
 
-pub type pcap_handler =
-    Option<extern "C" fn(arg1: *mut c_uchar, arg2: *const pcap_pkthdr, arg3: *const c_uchar) -> ()>;
+pub type pcap_handler = Option<
+    unsafe extern "C" fn(arg1: *mut c_uchar, arg2: *const pcap_pkthdr, arg3: *const c_uchar) -> (),
+>;
 
 extern "C" {
     pub fn pcap_lookupdev(arg1: *mut c_char) -> *mut c_char;
@@ -97,8 +98,12 @@ extern "C" {
     pub fn pcap_open_offline(arg1: *const c_char, arg2: *mut c_char) -> *mut pcap_t;
     pub fn pcap_fopen_offline(arg1: *mut FILE, arg2: *mut c_char) -> *mut pcap_t;
     pub fn pcap_close(arg1: *mut pcap_t);
-    // pub fn pcap_loop(arg1: *mut pcap_t, arg2: c_int,
-    //                  arg3: pcap_handler, arg4: *mut c_uchar) -> c_int;
+    pub fn pcap_loop(
+        arg1: *mut pcap_t,
+        arg2: c_int,
+        arg3: pcap_handler,
+        arg4: *mut c_uchar,
+    ) -> c_int;
     // pub fn pcap_dispatch(arg1: *mut pcap_t, arg2: c_int, arg3: pcap_handler,
     //                      arg4: *mut c_uchar)-> c_int;
     // pub fn pcap_next(arg1: *mut pcap_t, arg2: *mut pcap_pkthdr) -> *const c_uchar;
@@ -109,7 +114,7 @@ extern "C" {
     ) -> c_int;
     // pub fn pcap_breakloop(arg1: *mut pcap_t);
     pub fn pcap_stats(arg1: *mut pcap_t, arg2: *mut pcap_stat) -> c_int;
-    pub fn pcap_setfilter(arg1: *mut pcap_t, arg2: *mut bpf_program) -> c_int;
+    pub fn pcap_setfilter(arg1: *mut pcap_t, arg2: *const bpf_program) -> c_int;
     pub fn pcap_setdirection(arg1: *mut pcap_t, arg2: pcap_direction_t) -> c_int;
     // pub fn pcap_getnonblock(arg1: *mut pcap_t, arg2: *mut c_char) -> c_int;
     pub fn pcap_setnonblock(arg1: *mut pcap_t, arg2: c_int, arg3: *mut c_char) -> c_int;
